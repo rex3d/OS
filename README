@@ -1,0 +1,464 @@
+/project-root
+│
+├── boot/                              # Start systemu i bootloader
+│   ├── asm/                           # Asembler do startu CPU i przejścia do protected/long mode
+│   │   ├── bootloader.asm             # Główny bootloader (16-bit real mode)
+│   │   ├── boot_utils.asm             # Funkcje pomocnicze (tekst, delay itd.)
+│   │   ├── boot_pm.asm                # Przejście do 32-bit protected mode
+│   │   ├── gdt.asm                   # Global Descriptor Table
+│   │   ├── idt.asm                   # Interrupt Descriptor Table
+│   │   ├── porty.asm                 # Operacje na portach I/O (in/out/cli/sti)
+│   │   └── ap_startup.asm            # Start CPU SMP
+│   ├── include/                      # Nagłówki ASM bootloadera (boot_utils.h, gdt.h, idt.h, porty.h, boot_pm.h, bootloader.h)
+│   ├── grub/                         # Konfiguracja GRUB
+│   │   └── grub.cfg
+│   ├── link.ld                       # Linker script bootloadera
+│   └── Makefile                     # Build bootu (kompilacja ASM, linkowanie, obrazy)
+│
+├── kernel/                           # Kernel i wszystko co z nim związane
+│   ├── arch/
+│   │   └── x86/
+│   │       ├── asm/                  # ASM specyficzny dla architektury
+│   │       │   ├── long_mode.asm
+│   │       │   ├── multitasking.asm
+│   │       │   ├── interrupts.asm
+│   │       │   └── traps.asm
+│   │       ├── apic/
+│   │       │   ├── lapic.c
+│   │       │   ├── lapic.h
+│   │       │   ├── ioapic.c
+│   │       │   └── ioapic.h
+│   │       ├── smp/
+│   │       │   ├── smp.c
+│   │       │   └── smp.h
+│   │       ├── interrupts.c
+│   │       ├── interrupts.h
+│   │       ├── multitasking.c
+│   │       ├── multitasking.h
+│   │       └── include/              # Specyficzne nagłówki architektury
+│   │           └── ...
+│   ├── core/                        # Główne pliki kernela (logika, init, panic)
+│   │   ├── kernel.c
+│   │   ├── kernel.h
+│   │   ├── loader_screen.c
+│   │   ├── loader_screen.h
+│   │   ├── panic.c
+│   │   ├── panic.h
+│   │   ├── init.c
+│   │   ├── init.h
+│   │   └── Makefile
+│   ├── mm/                         # Zarządzanie pamięcią
+│   │   ├── ipaging.c
+│   │   ├── ipaging.h
+│   │   ├── iheap.c
+│   │   ├── iheap.h
+│   │   ├── islab_allocator.c
+│   │   ├── islab_allocator.h
+│   │   ├── imem_utils.c
+│   │   └── mem_utils.h
+│   ├── fs/
+│   │   ├── vfs.c/h
+│   │   ├── file_system.c/h
+│   │   ├── fs_utils.c/h
+│   │   ├── mount.c/h
+│   │   ├── fs_registry.c/h
+│   │   ├── fat12.c/h
+│   │   ├── fat16.c/h
+│   │   ├── fat32.c/h
+│   │   ├── read_sector.c/h
+│   │   ├── devfs.c/h
+│   │   ├── tmpfs.c/h
+│   │   ├── inode.c/h
+│   │   ├── superblock.c/h
+│   │   ├── fs_perm.c/h
+│   │   ├── kheap.c/h
+│   │   ├── fat.c/h
+│   │   ├── Makefile
+│   │   └──rexe/
+│   │      ├── include/                    # Wszystkie nagłówki (h) - rozdzielone tematycznie
+│   │      │   ├── core/                   # Podstawowe struktury i definicje
+│   │      │   │   ├── inode.h             # Definicja inode, flagi, typy plików
+│   │      │   │   ├── superblock.h        # Struktura superblock
+│   │      │   │   ├── block.h             # Operacje na blokach, stałe
+│   │      │   │   ├── types.h             # Definicje typów (u32, u64 itd.)
+│   │      │   │   └── errors.h            # Kody błędów FS
+│   │      │   ├── fs/                     # Interfejsy operacji na plikach i katalogach
+│   │      │   │   ├── file.h              # API do odczytu/zapisu plików
+│   │      │   │   ├── dir.h               # Operacje na katalogach, listowanie
+│   │      │   │   ├── perm.h              # Uprawnienia i ACL
+│   │      │   │   └── mount.h             # Montowanie/odmontowywanie systemu plików
+│   │      │   ├── io/                     # Buforowanie i zarządzanie blokami
+│   │      │   │   ├── buffer_cache.h      # Buforowanie bloków dysku
+│   │      │   │   ├── block_device.h      # Abstrakcja urządzenia blokowego (dysk)
+│   │      │   │   └── io_scheduler.h      # Kolejkowanie IO, priorytety
+│   │      │   ├── security/               # Mechanizmy bezpieczeństwa
+│   │      │   │   ├── perm.h              # Uprawnienia rozszerzone (ACL)
+│   │      │   │   ├── encryption.h        # Szyfrowanie plików/bloków
+│   │      │   │   └── sandbox.h           # Sandboxing procesów/kontenerów
+│   │      │   └── utils/                  # Funkcje pomocnicze
+│   │      │       ├── string_utils.h      # Parsowanie i manipulacja stringami
+│   │      │       ├── time.h              # Funkcje czasu i daty (timestampy)
+│   │      │       └── logging.h           # Logowanie operacji
+│   │      │
+│   │      ├── src/                        # Źródła podzielone na moduły
+│   │      │   ├── core/                   # Podstawowe mechanizmy FS
+│   │      │   │   ├── inode.c             # Operacje na inode: tworzenie, usuwanie, modyfikacja
+│   │      │   │   ├── superblock.c        # Odczyt i zapis superblocka
+│   │      │   │   ├── block.c             # Zarządzanie blokami na dysku
+│   │      │   │   └── types.c             # Implementacja typów, pomocnicze struktury
+│   │      │   ├── fs/                     # Operacje na plikach i katalogach
+│   │      │   │   ├── file.c              # read, write, open, close
+│   │      │   │   ├── dir.c               # Tworzenie katalogów, listowanie plików
+│   │      │   │   ├── perm.c              # Uprawnienia i zmiany ACL
+│   │      │   │   └── mount.c             # Montowanie i odmontowywanie systemu plików
+│   │      │   ├── io/                     # Zarządzanie IO i cache
+│   │      │   │   ├── buffer_cache.c      # Buforowanie, flush do dysku
+│   │      │   │   ├── block_device.c      # Obsługa urządzeń blokowych
+│   │      │   │   └── io_scheduler.c      # Kolejkowanie i optymalizacja IO
+│   │      │   ├── security/               # Bezpieczeństwo i szyfrowanie
+│   │      │   │   ├── perm.c              # ACL i uprawnienia
+│   │      │   │   ├── encryption.c        # Szyfrowanie/dekryptowanie plików
+│   │      │   │   └── sandbox.c           # Sandboxing, kontrola dostępu
+│   │      │   ├── cache/                  # Cache plików i bloków
+│   │      │   │   ├── file_cache.c        # Cache dla otwartych plików
+│   │      │   │   └── block_cache.c       # Cache bloków
+│   │      │   ├── journal/                # Journal (log) operacji
+│   │      │   │   ├── journal.c           # Logowanie transakcji, recovery
+│   │      │   │   └── journal_recovery.c # Odtwarzanie po awarii
+│   │      │   └── tools/                  # Narzędzia użytkowe
+│   │      │       ├── format.c            # Formatowanie nowego woluminu
+│   │      │       ├── debug.c             # Narzędzia do debugowania FS
+│   │      │       └── benchmarks.c        # Testy wydajności
+│   │      │
+│   │      ├── tests/                      # Testy jednostkowe i integracyjne
+│   │      │   ├── core/                   # Testy modułu core (inode, blok)
+│   │      │   ├── fs/                     # Testy plików i katalogów
+│   │      │   ├── io/                     # Testy buforowania i IO
+│   │      │   ├── security/               # Testy uprawnień i szyfrowania
+│   │      │   └── integration/            # Testy pełnego systemu plików
+│   │      │
+│   │      ├── docs/                       # Dokumentacja techniczna
+│   │      │   ├── design.md               # Opis architektury i designu FS
+│   │      │   ├── api.md                  # Dokumentacja API dla devów
+│   │      │   ├── usage.md                # Instrukcje użytkownika i admina
+│   │      │   └── changelog.md            # Historia zmian
+│   │      │
+│   │      ├── Makefile                    # Kompilacja całego projektu
+│   │      └── README.md                   # Podstawowe info o projekcie
+│   ├── include/              # Specyficzne nagłówki architektury
+│   │   └── ...
+│   ├── drivers/
+│   │   ├── input/                     # Wszystko co wchodzi: klawiatury, myszy, gamepady
+│   │   │   ├── keyboard.c/h
+│   │   │   ├── mouse.c/h
+│   │   │   ├── joystick.c/h
+│   │   │   ├── input.c/h
+│   │   │   ├── input_utils.c/h       # Dodatkowe narzędzia do obsługi wejścia
+│   │   │   ├── input_event.c/h       # Struktura zdarzeń wejściowych
+│   │   │   ├── input_event_utils.c/h # Dodatkowe narzędzia do zdarzeń wejściowych
+│   │   │   ├── input_event_manager.c/h # Zarządzanie zdarzeniami wejściowymi
+│   │   │   ├── input_event_queue.c/h # Kolejka zdarzeń wejściowych
+│   │   │   └── input_manager.c/h     # Łączenie i zarządzanie urządzeniami wejściowymi
+│   │   ├── video/                     # Grafika i wyświetlanie
+│   │   │   ├── video.c/h
+│   │   │   ├── vga.c/h                # Podstawowe wsparcie VGA
+│   │   │   ├── vesa.c/h               # VESA BIOS Extensions
+│   │   │   └── framebuffer.c/h        # Obsługa framebufferów, np. dla GUI
+│   │   ├── storage/                   # Dyski, napędy, urządzenia blokowe
+│   │   │   ├── ata.c/h
+│   │   │   ├── block_device.c/h
+│   │   │   ├── block_utils.c/h
+│   │   │   ├── block_driver.c/h      # Ogólny interfejs dla sterowników blokowych
+│   │   │   ├── block_manager.c/h     # Zarządzanie urządzeniami blokowymi
+│   │   │   ├── block_utils.c/h       # Dodatkowe narzędzia do urządzeń blokowych
+│   │   │   ├── block_cache.c/h       # Cache bloków
+│   │   │   ├── block_cache_utils.c/h # Dodatkowe narzędzia do cache bloków
+│   │   │   ├── block_cache_manager.c/h # Zarządzanie cache bloków
+│   │   │   └── fs_driver.c/h          # Interfejs dla systemów plików
+│   │   ├── bus/                       # PCI, USB, itp.
+│   │   │   ├── bus.c/h
+│   │   │   ├── bus_utils.c/h         # Dodatkowe narzędzia do busów
+│   │   │   ├── pci_bus.c/h           # PCI bus
+│   │   │   ├── usb_bus.c/h           # USB bus
+│   │   │   ├── usb_device.c/h        # USB urządzenia
+│   │   │   ├── usb_driver.c/h        # USB sterowniki
+│   │   │   ├── usb_utils.c/h         # Dodatkowe narzędzia USB
+│   │   │   ├── pci.c/h
+│   │   │   └── pci_utils.c/h          # Dodatkowe narzędzia PCI
+│   │   ├── serial/                    # UART, COM
+│   │   │   └── serial.c/h
+│   │   ├── parallel/                  # LPT, drukarki
+│   │   │   └── parallel.c/h
+│   │   ├── net/                       # Sieć, jak już masz
+│   │   │   ├── rtl8139.c/h
+│   │   │   ├── nic.c/h
+│   │   │   ├── net.c/h
+│   │   │   ├── net_utils.c/h
+│   │   │   └── net_driver.c/h         # Ogólny interfejs dla sterowników sieciowych
+│   │   ├── loader/
+│   │   │   ├── elf.c/h               # Parsowanie ELF
+│   │   │   ├── elf_utils.c/h         # Dodatkowe narzędzia ELF
+│   │   │   ├── elf_loader_utils.c/h  # Dodatkowe narzędzia ELF
+│   │   │   └── elf_loader.c/h         # Parsowanie ELF i ładowanie binarek
+│   │   ├── timer/                     # Timery i zegary
+│   │   │   ├── timer.c/h
+│   │   │   ├── rtc.c/h
+│   │   │   └── timer_manager.c/h      # Zarządzanie timerami
+│   │   ├── sound/                     # Dźwięk i audio
+│   │   │   ├── sound.c/h
+│   │   │   ├── sound_driver.c/h
+│   │   │   └── sound_manager.c/h      # Zarządzanie dźwiękiem
+│   │   ├── usb/                       # USB i urządzenia peryferyjne
+│   │   │   ├── usb.c/h
+│   │   │   ├── usb_driver.c/h
+│   │   │   ├── usb_utils.c/h
+│   │   │   └── usb_hub.c/h           # Obsługa hubów USB
+│   │   ├── power/                    # Zarządzanie energią
+│   │   │   ├── power.c/h
+│   │   │   ├── power_manager.c/h
+│   │   │   └── power_utils.c/h
+│   │   ├── gpio/                     # GPIO i urządzenia peryferyjne
+│   │   │   ├── gpio.c/h
+│   │   │   ├── gpio_utils.c/h
+│   │   │   └── gpio_manager.c/h
+│   │   ├── rtc/                      # RTC i zegary
+│   │   │   ├── rtc.c/h
+│   │   │   ├── rtc_utils.c/h
+│   │   │   └── rtc_manager.c/h
+│   │   ├── random/                   # Generatory liczb losowych
+│   │   │   ├── random.c/h
+│   │   │   ├── random_utils.c/h
+│   │   │   └── random_manager.c/h
+│   │   ├── crypto/                   # Szyfrowanie i kryptografia
+│   │   │   ├── crypto.c/h
+│   │   │   ├── crypto_utils.c/h
+│   │   │   └── crypto_manager.c/h
+│   │   ├── block/                    # Blokowe urządzenia
+│   │   │   ├── block.c/h
+│   │   │   ├── block_utils.c/h
+│   │   │   └── block_manager.c/h
+│   │   ├── misc/                     # Inne urządzenia
+│   │   │   ├── misc.c/h
+│   │   │   ├── misc_utils.c/h
+│   │   │   └── misc_manager.c/h
+│   │   ├── platform/                 # Specyficzne dla platformy
+│   │   │   ├── platform.c/h
+│   │   │   ├── platform_utils.c/h
+│   │   │   └── platform_manager.c/h
+│   │   └── init/
+│   │       └── driver_init.c/h        # Init wszystkich driverów w jednym miejscu
+│   ├── net/
+│   │   ├── net.c/h                    # Główna obsługa sieci
+│   │   ├── ip/
+│   │   │   ├── ip.c/h
+│   │   │   ├── arp.c/h
+│   │   │   ├── ip_utils.c/h
+│   │   │   ├── ip_address.c/h
+│   │   │   ├── ip_packet.c/h
+│   │   │   ├── ip_header.c/h
+│   │   │   ├── ip_route.c/h
+│   │   │   ├── ip_route_table.c/h
+│   │   │   ├── ip_route_utils.c/h
+│   │   │   ├── ip_route_manager.c/h
+│   │   │   ├── ip_route_table_manager.c/h
+│   │   │   └── icmp.c/h
+│   │   ├── tcp/
+│   │   │   ├── tcp.c/h
+│   │   │   ├── tcp_header.c/h
+│   │   │   ├── tcp_packet.c/h
+│   │   │   ├── tcp_socket.c/h
+│   │   │   ├── tcp_connection.c/h
+│   │   │   ├── tcp_connection_manager.c/h
+│   │   │   ├── tcp_connection_utils.c/h
+│   │   │   ├── tcp_packet_manager.c/h
+│   │   │   ├── tcp_packet_utils.c/h
+│   │   │   ├── tcp_state.c/h
+│   │   │   └── tcp_utils.c/h
+│   │   ├── udp/
+│   │   │   └── udp.c/h
+│   │   └── dhcp/
+│   │       ├── dhcp.c/h
+│   │       ├── dhcp_client.c/h
+│   │       ├── dhcp_server.c/h
+│   │       ├── dhcp_utils.c/h
+│   │       ├── dhcp_packet.c/h
+│   │       ├── dhcp_header.c/h
+│   │       ├── dhcp_option.c/h
+│   │       ├── dhcp_option_utils.c/h
+│   │       ├── dhcp_option_manager.c/h
+│   │       ├── dhcp_option_table.c/h
+│   │       ├── dhcp_option_table_utils.c/h
+│   │       ├── dhcp_option_table_manager.c/h
+│   │       ├── dhcp_option_table_entry.c/h
+│   │       ├── dhcp_option_table_entry_utils.c/h
+│   │       └── socket.c/h                 # Abstrakcja socketów
+│   ├── shell/
+│   │   ├── shell.c/h                  # Główna powłoka
+│   │   ├── shell_cmds/
+│   │   ├── shell_cmds.c/h
+│   │   ├── sys_cmds.c/h           # Komendy systemowe jak `ls`, `ps`, `kill`
+│   │   ├── net_cmds.c/h           # Komendy sieciowe jak `ping`, `ifconfig`
+│   │   ├── fs_cmds.c/h            # Komendy plikowe jak `cd`, `ls`, `mkdir`
+│   │   ├── shell_parser.c/h           # Parsowanie wejścia
+│   │   ├── shell_history.c/h          # Historia komend
+│   │   ├── shell_config.cfg
+│   │   ├── shell_prompt.c/h           # Wyświetlanie prompta
+│   │   ├── shell_autocomplete.c/h     # Autouzupełnianie komend
+│   │   ├── shell_completion.c/h       # Uzupełnianie komend
+│   │   ├── shell_completion_utils.c/h # Dodatkowe narzędzia do uzupełniania
+│   │   ├── shell_completion_manager.c/h # Zarządzanie uzupełnianiem
+│   │   ├── shell_completion_table.c/h # Tabela uzupełniania
+│   │   ├── shell_completion_table_utils.c/h # Dodatkowe narzędzia do tabeli uzupełniania
+│   │   └── shell_aliases.cfg          # Aliasowanie komend
+│   ├── lib/                        # Biblioteki kernela
+│   │   ├── utils.c/h                # Funkcje pomocnicze (stringi, itp.)
+│   │   └── ...
+│   ├── user/                       # Kod userland (jeśli coś w kernelu)
+│   │   └── ...
+│   ├── gui/                        # GUI (window manager, compositor, widgets)
+│   │   ├── wm/
+│   │   │   └── wm.c/h
+│   │   ├── compositor.c/h
+│   │   ├── gui_server.c/h
+│   │   ├── core/
+│   │   │   └── gui_loop.c/h
+│   │   ├── surface/
+│   │   │   └── framebuffer.c/h
+│   │   ├── window/
+│   │   │   └── window.c/h
+│   │   ├── input/
+│   │   │   └── mouse_input.c
+│   │   │   └── keyboard_input.c
+│   │   ├── event/
+│   │   │   └── event_queue.c/h
+│   │   ├── theme/
+│   │   │   └── default_theme.c/h
+│   │   ├── widgets/
+│   │   │   ├── button.c
+│   │   │   ├── window_frame.c
+│   │   │   └── label.c
+│   │   └── assets/
+│   │       ├── logo.bmp
+│   │       └── font.psf
+│   ├── debug/                      # Debugging kernela
+│   │   ├── klog.c/h
+│   │   ├── assert.c/h
+│   │   └── serial_debug.c/h
+│   ├── tests/                      # Testy jednostkowe kernela
+│   │   ├── test_mm.c
+│   │   ├── test_fs.c
+│   │   └── Makefile
+│   ├── kernel.ld                   # Linker script kernela
+│   └── Makefile                   # Build kernela (kompilacja, linkowanie itd.)
+│
+├── include/                        # Nagłówki globalne (kernel + userland)
+│   └── ...
+│
+├── userlib/                       # Biblioteki userland
+│   ├── libc/
+│   │   └── ...
+│   ├── gui/
+│   │   └── ...
+│   └── Makefile
+│
+├── apps/                          # Aplikacje systemowe (userland)
+│   ├── coreutils/                 # cp, mv, ls, cat, etc.
+│   │   └── ...
+│   ├── netutils/                  # ping, ifconfig, dhclient
+│   │   └── ...
+│   ├── sysutils/                  # top, ps, shutdown itd.
+│   │   └── ...
+│   ├── guiapps/                  # GUI apps (w przyszłości)
+│   │   └── ...
+│   └── Makefile
+│
+├── services/                     # Demony systemowe
+│   ├── taskmgr/
+│   ├── logd/
+│   ├── sysd/
+│   ├── netd/                     # DHCP, DNS itd.
+│   ├── time_syncd/               # Synchronizacja czasu
+│   └── Makefile
+│
+├── scripts/                      # Skrypty pomocnicze
+│   ├── build.sh
+│   ├── test.sh
+│   ├── clean.sh
+│   ├── qemu_run.sh
+│   ├── iso_builder.sh
+│   └── debugger.sh
+│
+├── toolchain/                    # Toolchain, QEMU, cross compiler itd.
+│   ├── cross_compiler/
+│   ├── qemu/
+│   └── README.md
+│
+├── build/                       # Build output (wszystko co się generuje)
+│   └── ...
+│
+├── config/                      # Konfiguracje systemowe
+│   ├── rexos.conf
+│   ├── users.cfg
+│   ├── groups.cfg
+│   ├── permissions.cfg
+│   ├── locales/
+│   └── boot_flags.cfg
+│
+├── logs/                        # Logi systemowe
+│   └── ...
+│
+├── docs/                        # Dokumentacja i diagramy
+│   ├── api/
+│   ├── architecture.md
+│   ├── kernel_flowchart.svg
+│   ├── syscall_list.md
+│   ├── memory_map.md
+│   ├── LICENSE
+│   └── README.md
+│
+├── tmp/                         # Pliki tymczasowe
+│   └── ...
+│
+├── dev/                         # Device files (jeśli potrzeba)
+│   └── ...
+│
+├── etc/                         # Konfiguracja systemu i init skrypty
+│   ├── motd
+│   ├── hostname
+│   ├── network.conf
+│   ├── rex-version
+│   └── rc.d/
+│       ├── 00-network.rc
+│       ├── 10-mount.rc
+│       └── 99-userland.rc
+│
+├── usr/
+│   ├── bin/
+│   ├── lib/
+│   ├── include/
+│   └── share/
+│
+├── var/
+│   ├── log/
+│   ├── run/
+│   ├── lib/
+│   └── cache/
+│
+├── update/                     # Aktualizacje systemu
+│   └── ...
+│
+└── Makefile                   # Główny Makefile projektu (buduje boot, kernel, userlib, apps itd.)
+
+
+
+
+
+cd ~/OS/boot
+ls
+ls -la
+total 20
+sudo rm -rf build
+sudo chown -R $USER:$USER ~/OS
+make clean
+rm -rf build iso
+make
